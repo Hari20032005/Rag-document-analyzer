@@ -1,0 +1,17 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+python-multipart==0.0.20
+pydantic==2.10.5
+pydantic-settings==2.7.1
+langchain==0.3.13
+langchain-text-splitters==0.3.4
+chromadb==0.5.23
+sentence-transformers==3.3.1
+openai==1.58.1
+pypdf==5.1.0
+unstructured==0.16.12
+tenacity==9.0.0
+pytest==8.3.4
+pytest-mock==3.14.0
+httpx==0.28.1

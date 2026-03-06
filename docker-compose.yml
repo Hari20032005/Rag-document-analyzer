@@ -1,0 +1,56 @@
+services:
+  chroma:
+    image: chromadb/chroma:0.5.5
+    container_name: rag-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./chromadb_data:/chroma/chroma
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rag-backend
+    env_file:
+      - .env
+    environment:
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+      - FRONTEND_URL=http://localhost:5173
+      - USE_EXTERNAL_CHROMA=true
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - CHROMA_PERSIST_DIR=/app/chromadb_data
+      - METADATA_DB_PATH=/app/data/metadata.db
+      - UPLOADS_DIR=/app/data/uploads
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/data:/app/data
+      - ./chromadb_data:/app/chromadb_data
+    ports:
+      - "8000:8000"
+    depends_on:
+      - chroma
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    environment:
+      - VITE_API_BASE_URL=
+      - VITE_PROXY_TARGET=http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - "6379:6379"

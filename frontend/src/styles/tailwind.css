@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #132235;
+  background: radial-gradient(circle at 10% 20%, #ffffff 0%, #edf1f8 40%, #dbe4ef 100%);
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-soft backdrop-blur-sm;
+}
+
+.page-title {
+  @apply text-2xl font-semibold text-slatebrand-900;
+}

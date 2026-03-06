@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Env
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+.coverage
+htmlcov/
+
+# Data
+backend/data/*
+!backend/data/.gitkeep
+!backend/data/uploads/
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/chromadb_data/
+chromadb_data/
+
+# OS
+.DS_Store
