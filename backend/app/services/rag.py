@@ -70,9 +70,9 @@ def _format_chunks(chunks: list[SearchResult]) -> str:
     lines = []
     for index, chunk in enumerate(chunks, start=1):
         lines.append(
-            f"{index}. chunk_id={chunk.chunk_id}; page={chunk.page}; doc_title={chunk.doc_title}; snippet={chunk.snippet}"
+            f"{index}. chunk_id={chunk.chunk_id}; page={chunk.page}; doc_title={chunk.doc_title}\n{chunk.text}"
         )
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _extract_key_concepts(answer: str) -> list[str]:
@@ -190,7 +190,7 @@ def _call_gemini(system_prompt: str, user_prompt: str, temperature: float) -> st
                 ]
             }
         ],
-        "generationConfig": {"temperature": temperature, "maxOutputTokens": 900},
+        "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096},
     }
     headers = {"Content-Type": "application/json", "X-goog-api-key": settings.gemini_api_key}
 

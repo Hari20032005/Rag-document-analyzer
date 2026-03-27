@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 import time
+
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 import chromadb
 from chromadb.api.models.Collection import Collection

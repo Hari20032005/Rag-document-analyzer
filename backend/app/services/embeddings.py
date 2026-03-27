@@ -4,8 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import math
+import multiprocessing
+import os
 from collections.abc import Iterable
 from typing import Any
+
+# Prevent broken-pipe errors from forked subprocesses inside uvicorn workers
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+try:
+    multiprocessing.set_start_method("spawn", force=True)
+except RuntimeError:
+    pass
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -52,7 +61,13 @@ class EmbeddingService:
         if self._fallback or self._model is None:
             return [_hash_embedding(text) for text in batch]
 
-        vectors = self._model.encode(batch, convert_to_numpy=True, normalize_embeddings=True)
+        vectors = self._model.encode(
+            batch,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+            batch_size=len(batch),
+        )
         return [vector.astype(float).tolist() for vector in vectors]
 
     def embed_texts(self, texts: Iterable[str], batch_size: int = 32) -> list[list[float]]:
