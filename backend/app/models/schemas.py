@@ -75,6 +75,10 @@ class AskResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
     prompt_used: str
+    query_type: str = "conceptual"
+    retrieval_mode: str = "vector"
+    retrieval_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    adaptive_boost_used: float = Field(default=1.0, ge=1.0)
 
 
 class ExplainSectionRequest(BaseModel):
@@ -94,6 +98,10 @@ class ExplainSectionResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
     prompt_used: str
+    query_type: str = "conceptual"
+    retrieval_mode: str = "vector"
+    retrieval_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    adaptive_boost_used: float = Field(default=1.0, ge=1.0)
 
 
 class SummarizeRequest(BaseModel):
@@ -117,3 +125,47 @@ class ErrorResponse(BaseModel):
     """Error response schema."""
 
     detail: str
+
+
+# ---------------------------------------------------------------------------
+# StructRAG tree schemas
+# ---------------------------------------------------------------------------
+
+
+class TreeNodeSchema(BaseModel):
+    """One node in the document section tree (StructRAG dual-index)."""
+
+    node_id: str
+    title: str
+    start_page: int
+    end_page: int
+    summary: str
+    section_type: str
+    children: list["TreeNodeSchema"] = []
+
+
+# Required so Pydantic resolves the forward reference on the recursive field.
+TreeNodeSchema.model_rebuild()
+
+
+class TreeDocumentResponse(BaseModel):
+    """Full section tree for a document."""
+
+    doc_id: str
+    node_count: int
+    nodes: list[TreeNodeSchema]
+
+
+class TreeNavigateRequest(BaseModel):
+    """Request body for tree navigation."""
+
+    query: str = Field(min_length=3, max_length=2000)
+
+
+class TreeNavigateResponse(BaseModel):
+    """Sections identified as relevant to a query via tree navigation."""
+
+    query: str
+    query_type: str
+    relevant_sections: list[TreeNodeSchema]
+    section_affinity_scores: list[float] = []

@@ -1,0 +1,21 @@
+graph LR
+    subgraph PRIOR["Prior Art - What Exists"]
+        PA1["RRF Cormack 2009\nFixed constant fusion"]
+        PA2["PageIndex VectifyAI\nTree-only no vectors"]
+        PA3["RAPTOR Stanford\nTree-level retrieval"]
+        PA4["CN118861088B\nTree for query expansion"]
+        PA5["CN118193714B\nKnowledge graph + RAG"]
+    end
+
+    subgraph NOVEL["Our Innovations - What Is New"]
+        N1["ATB-RRF\nAdaptive per-chunk boost\nf of affinity confidence depth"]
+        N2["Bidirectional Affinity\nBoost + Dampen tables\n13-type ontology"]
+        N3["Cross-Signal Confidence\nvector AND tree agreement\nAttenuation safeguard"]
+        N4["Depth-Weighted Navigation\nDeeper nodes = higher boost\n1 + 0.15 x depth"]
+    end
+
+    PA1 -.->|"Static vs Adaptive"| N1
+    PA2 -.->|"No vectors vs Hybrid"| N1
+    PA3 -.->|"No RRF vs Fused"| N1
+    PA4 -.->|"Expansion vs Boost"| N3
+    PA5 -.->|"No bidirectional"| N2

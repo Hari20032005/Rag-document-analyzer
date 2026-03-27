@@ -13,8 +13,10 @@ import httpx
 from app.core.config import get_settings
 from app.core.logger import get_logger
 from app.models.schemas import SourceChunk
-from app.services.embeddings import embedding_service
-from app.services.vectorstore import SearchResult, vectorstore_service
+from app.services.embeddings import embedding_service  # noqa: F401 – kept for tests that mock it
+from app.services.hybrid_retriever import HybridRetrievalResult, hybrid_retrieve
+from app.services.tree_store import tree_store
+from app.services.vectorstore import SearchResult, vectorstore_service  # noqa: F401 – backwards compat
 
 logger = get_logger(__name__)
 _llm_window: deque[float] = deque()
@@ -53,6 +55,10 @@ class RAGResponse:
     answer: str
     sources: list[SourceChunk]
     prompt_used: str
+    query_type: str = "conceptual"
+    retrieval_mode: str = "vector"
+    retrieval_confidence: float = 0.0
+    adaptive_boost_used: float = 1.0
 
 
 def _is_disallowed_query(question: str) -> bool:
@@ -261,7 +267,7 @@ def _generate_answer(system_prompt: str, user_prompt: str, temperature: float, c
 
 
 def answer_question(doc_id: str, question: str, top_k: int, mode: str, temperature: float = 0.2) -> RAGResponse:
-    """Retrieve relevant chunks and generate a grounded answer."""
+    """Retrieve relevant chunks via StructRAG hybrid retrieval and generate a grounded answer."""
 
     if _is_disallowed_query(question):
         disclaimer = (
@@ -271,10 +277,17 @@ def answer_question(doc_id: str, question: str, top_k: int, mode: str, temperatu
         return RAGResponse(answer=disclaimer, sources=[], prompt_used="")
 
     query_start = time.perf_counter()
-    query_embedding = embedding_service.embed_query(question)
-    results = vectorstore_service.search(doc_id=doc_id, query_embedding=query_embedding, top_k=top_k)
+    # Load section tree (None for documents indexed before StructRAG)
+    tree_nodes = tree_store.get_tree(doc_id)
+    hybrid_result: HybridRetrievalResult = hybrid_retrieve(
+        query=question, doc_id=doc_id, top_k=top_k, tree_nodes=tree_nodes
+    )
+    results = hybrid_result.results
     retrieval_ms = (time.perf_counter() - query_start) * 1000
-    logger.info("retrieval completed in %.2f ms for doc_id=%s top_k=%d", retrieval_ms, doc_id, top_k)
+    logger.info(
+        "retrieval completed in %.2f ms for doc_id=%s top_k=%d mode=%s used_tree=%s",
+        retrieval_ms, doc_id, top_k, hybrid_result.query_type, hybrid_result.used_tree,
+    )
 
     formatted_chunks = _format_chunks(results)
     user_question = f"[{mode}] {question}"
@@ -307,7 +320,15 @@ def answer_question(doc_id: str, question: str, top_k: int, mode: str, temperatu
         for result in results
     ]
 
-    return RAGResponse(answer=answer, sources=sources, prompt_used=user_prompt)
+    return RAGResponse(
+        answer=answer,
+        sources=sources,
+        prompt_used=user_prompt,
+        query_type=hybrid_result.query_type,
+        retrieval_mode="hybrid" if hybrid_result.used_tree else "vector",
+        retrieval_confidence=hybrid_result.retrieval_confidence,
+        adaptive_boost_used=hybrid_result.adaptive_boost_used,
+    )
 
 
 def summarize_document(doc_id: str, length: str, temperature: float = 0.2) -> tuple[RAGResponse, list[str]]:

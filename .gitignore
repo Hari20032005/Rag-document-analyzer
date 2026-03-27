@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv/
+backend/.venv/
+
+# Claude Code
+.claude/
 
 # Node
 node_modules/

@@ -1,0 +1,21 @@
+graph TD
+    ROOT["Academic Paper"]
+    ROOT --> ABS["Abstract\npages 1"]
+    ROOT --> INTRO["Introduction\npages 1-3"]
+    ROOT --> RW["Related Work\npages 3-5"]
+    ROOT --> METH["Methodology\npages 5-10"]
+    ROOT --> EXP["Experiments\npages 10-13"]
+    ROOT --> RES["Results\npages 13-16"]
+    ROOT --> CONC["Conclusion\npages 16-17"]
+    ROOT --> REF["References\npages 17-19"]
+
+    METH --> M1["Data Collection\npages 5-6\ndepth=1"]
+    METH --> M2["Model Architecture\npages 6-8\ndepth=1"]
+    METH --> M3["Training Procedure\npages 8-10\ndepth=1"]
+
+    M2 --> M2A["Encoder Design\npages 6-7\ndepth=2"]
+    M2 --> M2B["Decoder Design\npages 7-8\ndepth=2"]
+
+    EXP --> E1["Datasets\npages 10-11\ndepth=1"]
+    EXP --> E2["Baselines\npages 11-12\ndepth=1"]
+    EXP --> E3["Evaluation Metrics\npages 12-13\ndepth=1"]

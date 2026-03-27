@@ -25,6 +25,9 @@ class SearchResult:
     score: float
     text: str
     doc_title: str
+    # StructRAG fields (populated when the chunk was indexed with a section tree)
+    section_type: str = "other"
+    tree_node_id: str = ""
 
 
 class VectorStoreService:
@@ -74,6 +77,8 @@ class VectorStoreService:
                     "doc_title": chunk.doc_title,
                     "page": chunk.page,
                     "snippet": chunk.snippet,
+                    "section_type": chunk.section_type,
+                    "tree_node_id": chunk.tree_node_id,
                 }
                 for chunk in chunks
             ],
@@ -107,6 +112,8 @@ class VectorStoreService:
                     score=similarity,
                     text=str(docs[idx]) if idx < len(docs) else "",
                     doc_title=str(metadata.get("doc_title", "Document")),
+                    section_type=str(metadata.get("section_type", "other")),
+                    tree_node_id=str(metadata.get("tree_node_id", "")),
                 )
             )
 

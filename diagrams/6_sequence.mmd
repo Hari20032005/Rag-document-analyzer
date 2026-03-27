@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant RAG as RAG Service
+    participant HR as Hybrid Retriever
+    participant VS as ChromaDB
+    participant TS as SQLite
+    participant LLM as Gemini LLM
+
+    User->>FE: Ask question
+    FE->>API: POST /api/v1/ask
+    API->>RAG: answer_question()
+    
+    RAG->>TS: get_tree(doc_id)
+    TS-->>RAG: TreeNode list
+    
+    RAG->>HR: hybrid_retrieve(query, tree)
+    
+    par Vector Search
+        HR->>VS: search(doc_id, embedding, pool)
+        VS-->>HR: SearchResult list
+    and Tree Navigation
+        HR->>HR: navigate_tree(query, nodes)
+        Note right of HR: Depth-weighted<br/>+ Bidirectional affinity
+        HR-->>HR: Top-3 sections + scores
+    end
+    
+    HR->>HR: compute_retrieval_confidence()
+    HR->>HR: adaptive_boost_factor()
+    HR->>HR: tree_boosted_rrf()
+    HR->>HR: coherence_rerank()
+    HR-->>RAG: HybridRetrievalResult
+
+    RAG->>LLM: Generate answer
+    LLM-->>RAG: Answer text
+    
+    RAG-->>API: RAGResponse
+    API-->>FE: JSON Response
+    FE-->>User: Answer + Sources + Metrics

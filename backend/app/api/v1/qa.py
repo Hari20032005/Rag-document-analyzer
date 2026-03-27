@@ -39,7 +39,15 @@ def ask_question(request: AskRequest) -> AskResponse:
         mode=request.mode,
         temperature=request.temperature,
     )
-    return AskResponse(answer=rag_result.answer, sources=rag_result.sources, prompt_used=rag_result.prompt_used)
+    return AskResponse(
+        answer=rag_result.answer,
+        sources=rag_result.sources,
+        prompt_used=rag_result.prompt_used,
+        query_type=rag_result.query_type,
+        retrieval_mode=rag_result.retrieval_mode,
+        retrieval_confidence=rag_result.retrieval_confidence,
+        adaptive_boost_used=rag_result.adaptive_boost_used,
+    )
 
 
 @router.post("/explain-section", response_model=ExplainSectionResponse)
@@ -69,6 +77,10 @@ def explain_section(request: ExplainSectionRequest) -> ExplainSectionResponse:
         answer=rag_result.answer,
         sources=rag_result.sources,
         prompt_used=rag_result.prompt_used,
+        query_type=rag_result.query_type,
+        retrieval_mode=rag_result.retrieval_mode,
+        retrieval_confidence=rag_result.retrieval_confidence,
+        adaptive_boost_used=rag_result.adaptive_boost_used,
     )
 
 

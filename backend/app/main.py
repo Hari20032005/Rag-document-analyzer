@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1.docs import router as docs_router
 from app.api.v1.qa import router as qa_router
+from app.api.v1.tree import router as tree_router
 from app.api.v1.upload import router as upload_router
 from app.core.config import get_settings
 from app.core.logger import configure_logging, get_logger
@@ -64,6 +65,7 @@ app.add_middleware(RateLimitMiddleware, max_requests_per_minute=settings.rate_li
 app.include_router(upload_router, prefix=settings.api_v1_prefix)
 app.include_router(docs_router, prefix=settings.api_v1_prefix)
 app.include_router(qa_router, prefix=settings.api_v1_prefix)
+app.include_router(tree_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/")

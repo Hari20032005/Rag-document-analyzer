@@ -1,0 +1,61 @@
+flowchart TB
+    subgraph CLIENT["Frontend - React + TypeScript + Tailwind"]
+        direction TB
+        UP["UploadPage - Drag-drop PDF upload"]
+        DP["DocsPage - Document management"]
+        CP["ChatPage - Interactive QA"]
+        UP --> API_CLIENT["api.ts - Axios HTTP Client"]
+        DP --> API_CLIENT
+        CP --> API_CLIENT
+    end
+
+    subgraph BACKEND["Backend - FastAPI + Python 3.10"]
+        direction TB
+        MW["Rate Limit Middleware + CORS"]
+        
+        subgraph ENDPOINTS["API v1 Endpoints"]
+            E1["POST /upload\nGET /status/job_id"]
+            E2["POST /ask\nPOST /explain-section\nPOST /summarize"]
+            E3["GET /docs\nDELETE /docs/doc_id"]
+            E4["GET /tree/doc_id\nPOST /tree/doc_id/navigate"]
+        end
+
+        subgraph SERVICES["Core Services"]
+            LOADER["loader.py\nPDF Parser"]
+            TREE["tree_index.py\nSection Tree Builder"]
+            CHUNK["chunker.py\nSection-Aware Chunking"]
+            EMB["embeddings.py\nall-MiniLM-L6-v2"]
+            HR["hybrid_retriever.py\nATB-RRF Algorithm\nPATENT INNOVATION"]
+            RAG["rag.py\nRAG Orchestration"]
+        end
+
+        MW --> ENDPOINTS
+    end
+
+    subgraph STORAGE["Storage Layer"]
+        SQLITE["SQLite\njobs + documents\n+ document_trees"]
+        CHROMA["ChromaDB\nVector embeddings\n+ Section metadata"]
+        FILES["File System\nUploaded PDFs"]
+    end
+
+    subgraph LLM["LLM Providers"]
+        GEMINI["Google Gemini"]
+        OPENAI["OpenAI"]
+        HF["HuggingFace"]
+        MOCK["Mock - Testing"]
+    end
+
+    API_CLIENT -->|"HTTP/REST"| MW
+    E1 --> LOADER
+    LOADER --> TREE
+    LOADER --> CHUNK
+    TREE --> SQLITE
+    CHUNK --> EMB
+    EMB --> CHROMA
+    E2 --> RAG
+    RAG --> HR
+    HR --> CHROMA
+    HR --> SQLITE
+    RAG --> LLM
+    E3 --> SQLITE
+    E4 --> SQLITE

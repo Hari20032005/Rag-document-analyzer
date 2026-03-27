@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph STAGE1["Stage 1: Parse - 0 to 25 percent"]
+        A["PDF File"] --> B["pypdf\nextract text"]
+        B --> C["Fallback:\nunstructured"]
+        C --> D["PageRecord\npage_num + text"]
+    end
+
+    subgraph STAGE2["Stage 2: Tree Build - 25 to 50 percent"]
+        D --> E["Heading Detection\nregex patterns"]
+        E --> F["Optional LLM\nToC Extraction"]
+        F --> G["classify_section_type\n13-type ontology"]
+        G --> H["Build TreeNode\nhierarchy"]
+        H --> I["Generate\nsummaries"]
+        I --> J["Save to SQLite"]
+    end
+
+    subgraph STAGE3["Stage 3: Chunk - 50 to 60 percent"]
+        D --> K["RecursiveCharacter\nTextSplitter\n3000 / 800"]
+        K --> L["Annotate with\nsection_type +\ntree_node_id"]
+        L --> M["ChunkRecord list"]
+    end
+
+    subgraph STAGE4["Stage 4: Embed - 60 to 80 percent"]
+        M --> N["Batch Embedding\nall-MiniLM-L6-v2\n384 dimensions"]
+    end
+
+    subgraph STAGE5["Stage 5: Store - 80 to 100 percent"]
+        N --> O["ChromaDB\nVectors + Metadata"]
+        M --> P["SQLite\nDocument Record"]
+    end

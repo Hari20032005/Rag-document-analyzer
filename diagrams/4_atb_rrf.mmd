@@ -1,0 +1,30 @@
+flowchart TD
+    Q["User Query"] --> CL["classify_query\nfactual or structural or conceptual"]
+    
+    CL --> VS["Vector Search Path\nChromaDB similarity"]
+    CL --> TN["Tree Navigation Path\nDepth-Weighted Scoring"]
+    
+    TN --> BA["Bidirectional Affinity\nBoost: methodology +1.5\nDampen: references x0.7"]
+    BA --> DW["Depth Weighting\nbonus = 1 + 0.15 x depth\nDeeper = More Specific"]
+    DW --> TOP3["Top-3 Sections + Scores"]
+    
+    VS --> POOL["Candidate Pool\ntop_k x 2 results"]
+    TOP3 --> PAGES["Relevant Page Set"]
+    
+    POOL --> CONF["Cross-Signal Confidence\noverlap = vector_top_k AND tree_pages\nconfidence in 0.0 to 1.0"]
+    PAGES --> CONF
+    
+    CONF --> ADAPT["Adaptive Boost Factor\nraw = BASE + affinity x range\n+ DEPTH_BONUS x depth"]
+    
+    ADAPT --> ATTEN{"confidence\nbelow 0.3 ?"}
+    ATTEN -->|"Yes"| ATT_Y["Attenuate:\nfinal = 1 + boost-1 x conf/0.3"]
+    ATTEN -->|"No"| ATT_N["Full boost:\nfinal = clamp raw to 1.0 - 2.0"]
+    
+    ATT_Y --> RRF["ATB-RRF Fusion\nFor each chunk at rank r:\nscore = 1 div 60+r x boost\nif page in tree_pages"]
+    ATT_N --> RRF
+    POOL --> RRF
+    PAGES --> RRF
+    
+    RRF --> COH["Coherence Re-ranking\n+0.1 same-node bonus"]
+    
+    COH --> OUT["Final Ranked Results\nwith retrieval_confidence\nand adaptive_boost_used"]

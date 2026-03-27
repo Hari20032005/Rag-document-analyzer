@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import DeleteDocumentResponse, DocumentInfo, DocumentListResponse
 from app.services.jobs import job_repository
+from app.services.tree_store import tree_store
 from app.services.vectorstore import vectorstore_service
 
 router = APIRouter(tags=["docs"])
@@ -40,6 +41,7 @@ def delete_document(doc_id: str) -> DeleteDocumentResponse:
         raise HTTPException(status_code=404, detail="Document not found")
 
     vectorstore_service.delete_doc(doc_id)
+    tree_store.delete_tree(doc_id)
     deleted = job_repository.delete_document(doc_id)
 
     file_path = Path(record.file_path)

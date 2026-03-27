@@ -16,6 +16,8 @@ from app.services.chunker import chunk_pages
 from app.services.embeddings import embedding_service
 from app.services.jobs import DocumentRecord, job_repository
 from app.services.loader import load_pdf
+from app.services.tree_index import build_document_tree
+from app.services.tree_store import tree_store
 from app.services.vectorstore import vectorstore_service
 
 router = APIRouter(tags=["upload"])
@@ -23,20 +25,47 @@ logger = get_logger(__name__)
 
 
 def process_document_job(job_id: str, file_path: str, title: str | None) -> None:
-    """Background processing for parse -> chunk -> embed -> index workflow."""
+    """Background processing: parse → tree-index → chunk → embed → vector-index.
+
+    StructRAG ingestion pipeline
+    ----------------------------
+    1.  Load PDF pages with text extraction          (0%  → 25%)
+    2.  Build hierarchical section tree              (25% → 50%)
+    3.  Section-aware chunking (tree-annotated)      (50% → 60%)
+    4.  Generate embeddings                          (60% → 80%)
+    5.  Upsert vectors + tree into stores            (80% → 100%)
+    """
 
     try:
+        # --- 1. Parse PDF ---------------------------------------------------
         pages = load_pdf(file_path)
         total_pages = len(pages)
-        job_repository.update_job(job_id, pages_parsed=total_pages, total_pages=total_pages, progress=30)
+        job_repository.update_job(job_id, pages_parsed=total_pages, total_pages=total_pages, progress=25)
 
         doc_id = str(uuid4())
         doc_title = title.strip() if title else Path(file_path).stem
-        chunks = chunk_pages(pages, doc_id=doc_id, doc_title=doc_title)
+
+        # --- 2. Build section tree (StructRAG dual-index) -------------------
+        settings = get_settings()
+        tree_nodes = build_document_tree(
+            pages=pages,
+            doc_id=doc_id,
+            doc_title=doc_title,
+            use_llm=(settings.llm_provider != "mock"),
+        )
+        job_repository.update_job(job_id, progress=50)
+
+        # --- 3. Section-aware chunking (annotated with tree metadata) -------
+        chunks = chunk_pages(pages, doc_id=doc_id, doc_title=doc_title, tree_nodes=tree_nodes)
         job_repository.update_job(job_id, chunks_created=len(chunks), progress=60)
 
+        # --- 4. Embed chunks ------------------------------------------------
         embeddings = embedding_service.embed_texts([chunk.text for chunk in chunks])
+        job_repository.update_job(job_id, progress=80)
+
+        # --- 5. Persist vectors + section tree + document record ------------
         vectorstore_service.add_chunks(chunks, embeddings)
+        tree_store.save_tree(doc_id, tree_nodes)
 
         job_repository.add_document(
             DocumentRecord(
@@ -49,7 +78,10 @@ def process_document_job(job_id: str, file_path: str, title: str | None) -> None
         )
 
         job_repository.update_job(job_id, status="completed", progress=100, doc_id=doc_id)
-        logger.info("Ingestion complete for doc_id=%s chunks=%d", doc_id, len(chunks))
+        logger.info(
+            "Ingestion complete for doc_id=%s chunks=%d tree_nodes=%d",
+            doc_id, len(chunks), len(tree_nodes),
+        )
     except Exception as exc:
         logger.exception("Document ingestion failed for job_id=%s", job_id)
         job_repository.update_job(job_id, status="failed", error=str(exc), progress=100)
