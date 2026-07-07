@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ChatBox, { type ChatMessage } from '../components/ChatBox';
 import Loader from '../components/Loader';
 import { askQuestion, listDocuments, type DocumentInfo } from '../services/api';
+
+const confidenceStyles: Record<string, string> = {
+  High: 'bg-emerald-100 text-emerald-700',
+  Medium: 'bg-amber-100 text-amber-700',
+  Low: 'bg-rose-100 text-rose-700',
+};
 
 export default function ChatPage(): JSX.Element {
   const { docId } = useParams();
@@ -38,14 +44,7 @@ export default function ChatPage(): JSX.Element {
 
     setLoading(true);
     try {
-      const response = await askQuestion({
-        doc_id: docId,
-        question,
-        top_k: topK,
-        mode,
-        temperature,
-      });
-
+      const response = await askQuestion({ doc_id: docId, question, top_k: topK, mode, temperature });
       const assistantMessage: ChatMessage = {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
@@ -71,54 +70,88 @@ export default function ChatPage(): JSX.Element {
       return null;
     }
     const avg = latest.sources.reduce((acc, source) => acc + source.score, 0) / latest.sources.length;
-    if (avg > 0.75) {
-      return 'High';
-    }
-    if (avg > 0.45) {
-      return 'Medium';
-    }
+    if (avg > 0.75) return 'High';
+    if (avg > 0.45) return 'Medium';
     return 'Low';
   }, [messages]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-      <aside className="card space-y-4">
-        <h2 className="text-lg font-semibold text-slatebrand-900">Document Context</h2>
-        {!activeDoc ? <Loader label="Loading document info..." /> : null}
-        {activeDoc ? (
-          <div className="space-y-1 text-sm text-slate-700">
-            <p className="font-semibold">{activeDoc.title}</p>
-            <p>{activeDoc.page_count} pages</p>
-            <p>Uploaded: {new Date(activeDoc.upload_date).toLocaleString()}</p>
-            <p>Confidence: {confidence ?? 'N/A'}</p>
-          </div>
-        ) : null}
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-800">Recent Queries</h3>
-          <ul className="space-y-2 text-xs text-slate-600">
-            {recentQueries.length === 0 ? <li>None yet.</li> : null}
-            {recentQueries.map((item, index) => (
-              <li key={`${item}-${index}`} className="rounded bg-slate-100 px-2 py-1">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </aside>
+    <div className="space-y-4">
+      <Link to="/docs" className="inline-flex items-center gap-1 text-sm font-medium text-ink-500 transition hover:text-brand-700">
+        ← Back to documents
+      </Link>
 
-      <ChatBox
-        messages={messages}
-        loading={loading}
-        topK={topK}
-        mode={mode}
-        temperature={temperature}
-        onTopKChange={setTopK}
-        onModeChange={setMode}
-        onTemperatureChange={setTemperature}
-        onSend={(question) => {
-          void handleSend(question);
-        }}
-      />
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <aside className="card h-fit space-y-5">
+          <div>
+            <p className="eyebrow">Document</p>
+            {!activeDoc ? (
+              <div className="mt-2">
+                <Loader label="Loading…" />
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <p className="font-bold leading-snug text-ink-900">{activeDoc.title}</p>
+                <div className="flex flex-wrap gap-1.5 text-xs">
+                  <span className="rounded-md bg-ink-100 px-2 py-1 font-medium text-ink-600">{activeDoc.page_count} pages</span>
+                  <span className="rounded-md bg-ink-100 px-2 py-1 font-medium text-ink-600">
+                    {new Date(activeDoc.upload_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-ink-200 bg-white/70 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-ink-700">Retrieval confidence</span>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  confidence ? confidenceStyles[confidence] : 'bg-ink-100 text-ink-500'
+                }`}
+              >
+                {confidence ?? 'N/A'}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-snug text-ink-500">
+              Cross-signal agreement between the section-tree and vector retrieval.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-ink-700">Recent queries</h3>
+            {recentQueries.length === 0 ? (
+              <p className="text-xs text-ink-400">Your questions will appear here.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {recentQueries.map((item, index) => (
+                  <li
+                    key={`${item}-${index}`}
+                    className="truncate rounded-lg bg-ink-50 px-2.5 py-1.5 text-xs text-ink-600"
+                    title={item}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </aside>
+
+        <ChatBox
+          messages={messages}
+          loading={loading}
+          topK={topK}
+          mode={mode}
+          temperature={temperature}
+          onTopKChange={setTopK}
+          onModeChange={setMode}
+          onTemperatureChange={setTemperature}
+          onSend={(question) => {
+            void handleSend(question);
+          }}
+        />
+      </div>
     </div>
   );
 }
