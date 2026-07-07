@@ -55,7 +55,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 app = FastAPI(title=settings.app_name, version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[origin.strip() for origin in settings.frontend_url.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
