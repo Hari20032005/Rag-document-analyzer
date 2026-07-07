@@ -196,7 +196,15 @@ def _call_gemini(system_prompt: str, user_prompt: str, temperature: float) -> st
 
     timeout = httpx.Timeout(connect=10.0, read=settings.llm_request_timeout_seconds, write=20.0, pool=10.0)
     fallback_models = [item.strip() for item in settings.gemini_fallback_models.split(",") if item.strip()]
-    models_to_try = [settings.gemini_model, *fallback_models]
+    # Google-maintained rolling aliases appended as guaranteed fallbacks so a stale
+    # GEMINI_MODEL value (e.g. a retired gemini-1.5-flash) still resolves to a live model.
+    guaranteed_models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-pro-latest"]
+    seen: set[str] = set()
+    models_to_try = []
+    for candidate in [settings.gemini_model, *fallback_models, *guaranteed_models]:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            models_to_try.append(candidate)
     retryable_statuses = {429, 500, 503}
 
     last_error: Exception | None = None
@@ -246,9 +254,10 @@ def _call_gemini(system_prompt: str, user_prompt: str, temperature: float) -> st
                 if status in retryable_statuses and attempt < settings.llm_request_retries:
                     time.sleep(1.5 * attempt)
                     continue
-                if status in retryable_statuses:
-                    break
-                raise RuntimeError(f"Gemini API returned {status}: {detail}") from exc
+                # Non-retryable status (e.g. 404 model-not-found) or retries exhausted:
+                # stop retrying this model and fall through to the next candidate model.
+                last_error = RuntimeError(f"Gemini API returned {status} for model {model}: {detail}")
+                break
 
     raise RuntimeError(f"Gemini unavailable across models {models_to_try}: {last_error}")
 
