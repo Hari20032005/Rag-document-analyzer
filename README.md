@@ -2,6 +2,8 @@
 
 A production-ready full-stack repository for uploading academic PDFs, indexing them with embeddings in ChromaDB, and asking grounded questions with citations using Retrieval-Augmented Generation (RAG).
 
+Live url:
+rag-academic-explainer.vercel.app
 ## Features
 - PDF upload with background ingestion job (`/upload` + `/status/{job_id}`)
 - PDF parsing with `pypdf` and `unstructured` fallback
